@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Cadastro</h2>
+    <form action="/register" method="POST" enctype="multipart/form-data">
+      <input type="text" name="name" placeholder="Nome" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Senha" required>
+      <input type="password" name="confirm_password" placeholder="Confirme a senha" required>
+      <input type="text" name="recovery_key" placeholder="Palavra-chave de recuperação" required>
+      <input type="file" name="photo" accept="image/*">
+      <button type="submit">Cadastrar</button>
+    </form>
+    <a href="/">Voltar ao login</a>
+  </div>
+</body>
+</html>

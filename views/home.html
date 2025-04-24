@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Postweb</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Menu Horizontal no Lado Direito -->
+    <div class="user-info">
+      <img id="user-photo" src="/images/default-avatar.png" alt="Foto do usuário">
+      <span id="user-name">Carregando...</span>
+    </div>
+    <nav class="menu">
+      <ul style="display: flex; list-style: none; padding: 0; margin: 0;">
+        <li><a href="/home">Home</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </nav>
+
+    <!-- Seção para Criar Postagens -->
+    <div class="post-form">
+      <h3>Criar Nova Postagem</h3>
+      <form id="create-post-form" enctype="multipart/form-data">
+        <label for="content">Conteúdo:</label>
+        <textarea id="content" name="content" required></textarea>
+      
+        <label for="image">Imagem (opcional):</label>
+        <input type="file" id="image" name="image" accept="image/*">
+      
+        <button type="submit">Publicar</button>
+      </form>
+    </div>
+
+    <!-- Lista de Postagens -->
+    <div id="posts-container">
+      <h3>Postagens</h3>
+      <ul id="posts-list">
+        <li>Carregando postagens...</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const socket = io();
+
+      // Elementos do DOM
+      const userNameElement = document.getElementById('user-name');
+      const userPhotoElement = document.getElementById('user-photo');
+      const postsList = document.getElementById('posts-list');
+      const createPostForm = document.getElementById('create-post-form');
+
+     // Função para carregar o perfil do usuário logado
+async function loadUserProfile() {
+  try {
+    const response = await fetch('/get-profile');
+    if (!response.ok) {
+      throw new Error(`Erro ao carregar perfil: ${response.status}`);
+    }
+    const profileData = await response.json();
+    console.log('Dados do perfil:', profileData);
+
+    // Atualize a interface com os dados do perfil
+    const userNameElement = document.getElementById('user-name');
+    const userPhotoElement = document.getElementById('user-photo');
+
+    // Define o nome do usuário
+    userNameElement.textContent = profileData.name;
+
+    // Define a imagem do usuário (se existir)
+    if (profileData.photo) {
+      userPhotoElement.src = profileData.photo; // Assume que `photo` é um caminho relativo ou base64
+      userPhotoElement.alt = 'Foto do usuário';
+    } else {
+      userPhotoElement.src = '/images/default-avatar.png'; // Imagem padrão se não houver foto
+      userPhotoElement.alt = 'Avatar padrão';
+    }
+  } catch (error) {
+    console.error(error.message);
+    alert('Ocorreu um erro ao carregar o perfil do usuário.');
+  }
+}
+
+// Chame a função ao carregar a página
+window.addEventListener('DOMContentLoaded', loadUserProfile);
+      // Função para carregar postagens
+      const loadPosts = async () => {
+  try {
+    const response = await fetch('/get-posts');
+    if (!response.ok) throw new Error('Erro ao carregar postagens.');
+
+    const posts = await response.json();
+    updatePostsList(posts);
+  } catch (error) {
+    console.error(error.message);
+    alert('Ocorreu um erro ao carregar as postagens.');
+  }
+};
+
+      // Função para atualizar a lista de postagens
+      const updatePostsList = (posts) => {
+  postsList.innerHTML = '';
+
+  if (posts.length === 0) {
+    postsList.innerHTML = '<li>Nenhuma postagem disponível.</li>';
+    return;
+  }
+
+  posts.forEach(post => {
+    const li = document.createElement('li');
+    li.classList.add('post');
+    li.innerHTML = `
+      <div>
+        <img 
+  src="${post.userphoto ? post.userphoto : '/images/default-avatar.png'}" alt="Foto do usuário" width="30" 
+  height="30"style="border-radius: 50%; object-fit: cover;">
+
+             <strong>${post.username}:</strong> ${post.content}
+          ${post.image ? `<br><img src="data:image/jpeg;base64,${post.image}" alt="Imagem da postagem">` : ''}
+      </div>
+     <div class="comments-section" data-post-id="${post.id}">
+  <h4>Comentários</h4>
+
+  <!-- Formulário de Comentários (Input) -->
+  <form class="comment-form" data-post-id="${post.id}">
+    <input type="text" placeholder="Adicionar comentário..." required>
+    <button type="submit">Comentar</button>
+  </form>
+
+  <!-- Lista de Comentários -->
+  <ul class="comments-list"></ul>
+</div>
+    `;
+    postsList.appendChild(li);
+
+    // Carrega os comentários da postagem
+    loadComments(post.id);
+  });
+};
+      // Função para carregar comentários de uma postagem
+      const loadComments = async (postId) => {
+  try {
+    const response = await fetch(`/get-comments/${postId}`);
+    if (!response.ok) throw new Error('Erro ao carregar comentários.');
+
+    const comments = await response.json();
+    updateCommentsList(postId, comments);
+  } catch (error) {
+    console.error(error.message);
+    console.log('Ocorreu um erro ao carregar os comentários.');
+  }
+};
+  
+      //Função para atualizar a lista de comentários
+      const updateCommentsList = (postId, comments) => {
+        const commentsSection = document.querySelector(`.comments-section[data-post-id="${postId}"]`);
+        const commentsList = commentsSection.querySelector('.comments-list');
+        commentsList.innerHTML = '';
+
+        if (comments.length === 0) {
+          commentsList.innerHTML = '<li>Nenhum comentário disponível.</li>';
+          return;
+        }
+
+        comments.forEach(comment => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <img src="${comment.userphoto ? comment.userphoto : '/images/default-avatar.png'}" alt="Foto do usuário" width="20"  height="20"style="border-radius: 50%; object-fit: cover;">
+            <strong>${comment.username}:</strong> ${comment.content}
+          `;
+          commentsList.appendChild(li);
+        });
+      };
+
+      // Formulário para criar postagens
+      createPostForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData(createPostForm);
+  const content = formData.get('content');
+  const image = formData.get('image');
+
+  if (!content) {
+    alert('O conteúdo da postagem é obrigatório.');
+    return;
+  }
+
+  try {
+    const response = await fetch('/create-post', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) throw new Error('Erro ao criar postagem.');
+
+    // Limpa o formulário após a postagem
+    createPostForm.reset();
+
+    // Atualiza a lista de postagens automaticamente
+    loadPosts();
+  } catch (error) {
+    console.error(error.message);
+    alert('Ocorreu um erro ao criar a postagem.');
+  }
+});
+
+   // Evento para criar comentários
+postsList.addEventListener('submit', async (e) => {
+  if (!e.target.classList.contains('comment-form')) return;
+
+  e.preventDefault();
+
+  const postId = e.target.dataset.postId;
+  const content = e.target.querySelector('input').value;
+
+  if (!content.trim()) {
+    alert('O conteúdo do comentário é obrigatório.');
+    return;
+  }
+
+  console.log('Enviando comentário:', { postId, content }); // Log dos dados enviados
+
+  try {
+    const response = await fetch('/create-comment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId, content })
+    });
+
+    console.log('Resposta do servidor:', response); // Log da resposta do servidor
+
+    if (!response.ok) {
+      const errorData = await response.text(); // Tenta obter mais detalhes do erro
+      console.error('Erro do servidor:', errorData);
+      throw new Error('Erro ao criar comentário.');
+    }
+
+    // Limpa o formulário após o envio
+    e.target.reset();
+
+    // Recarrega os comentários para atualizar a interface
+    loadComments(postId);
+  } catch (error) {
+    console.error(error.message);
+    alert('Ocorreu um erro ao criar o comentário.');
+  }
+});
+      // Recarrega postagens quando uma nova é criada
+      socket.on('new-post', () => {
+        loadPosts();
+      });
+
+      // Carrega os dados iniciais
+      loadUserProfile();
+      loadPosts();
+    });
+  
+  </script>
+</body>
+</html>
