@@ -65,58 +65,76 @@ module.exports = (db) => {
     res.sendFile(path.join(__dirname, '../views/register.html'));
   });
 
-  // Rota para processar o registro
-  router.post('/register', upload.single('photo'), async (req, res) => {
-    console.log('Dados recebidos no backend:', req.body); // Log dos dados recebidos
-    const { name, email, password, confirm_password, recovery_key } = req.body;
+ // Rota para processar o registro
+router.post('/register', upload.single('photo'), async (req, res) => {
+  console.log('Dados recebidos no backend:', req.body); // Log dos dados recebidos
+  const { name, email, password, confirm_password, recovery_key } = req.body;
 
-    // Validação dos campos
-    if (!name || !email || !password || !confirm_password || !recovery_key) {
-      console.error('Dados inválidos para registro:', { name, email, password, confirm_password, recovery_key });
-      return res.status(400).send('<script>alert("Todos os campos são obrigatórios!"); window.location="/register";</script>');
-    }
+  // Validação dos campos
+  if (!name || !email || !password || !confirm_password || !recovery_key) {
+    console.error('Dados inválidos para registro:', { name, email, password, confirm_password, recovery_key });
+    return res.status(400).send('<script>alert("Todos os campos são obrigatórios!"); window.location="/register";</script>');
+  }
 
-    if (password !== confirm_password) {
-      console.error('Senhas não coincidem:', { password, confirm_password });
-      return res.status(400).send('<script>alert("As senhas não coincidem!"); window.location="/register";</script>');
-    }
+  // Validação do nome: deve ter entre 5 e 10 caracteres
+  if (name.length < 5 || name.length > 10) {
+    console.error('Nome inválido:', { name });
+    return res.status(400).send('<script>alert("O nome deve ter entre 5 e 10 caracteres!"); window.location="/register";</script>');
+  }
 
-    try {
-      // Verifica se o email já existe no banco de dados
-      db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-        if (err) {
-          console.error('Erro ao verificar email:', err);
-          return res.status(500).send('<script>alert("Erro interno ao verificar email!"); window.location="/register";</script>');
-        }
-        if (user) {
-          return res.status(400).send('<script>alert("Email já cadastrado!"); window.location="/register";</script>');
-        }
+  // Validação do email: deve ter entre 15 e 30 caracteres
+  if (email.length < 15 || email.length > 30) {
+    console.error('Email inválido:', { email });
+    return res.status(400).send('<script>alert("O email deve ter entre 15 e 30 caracteres!"); window.location="/register";</script>');
+  }
 
-        // Criptografa a senha
-        const hashedPassword = await bcrypt.hash(password, 10);
+  // Validação da senha: deve ter no máximo 8 caracteres
+  if (password.length > 8) {
+    console.error('Senha inválida:', { password });
+    return res.status(400).send('<script>alert("A senha deve ter no máximo 8 caracteres!"); window.location="/register";</script>');
+  }
 
-        // Salva o caminho da foto (se houver)
-        const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
+  // Verifica se as senhas coincidem
+  if (password !== confirm_password) {
+    console.error('Senhas não coincidem:', { password, confirm_password });
+    return res.status(400).send('<script>alert("As senhas não coincidem!"); window.location="/register";</script>');
+  }
 
-        // Insere o usuário no banco de dados
-        db.run(
-          'INSERT INTO users (name, email, password, photo, recovery_key) VALUES (?, ?, ?, ?, ?)',
-          [name, email, hashedPassword, photoPath, recovery_key],
-          (err) => {
-            if (err) {
-              console.error('Erro ao registrar usuário:', err);
-              return res.status(500).send('<script>alert("Erro ao registrar usuário!"); window.location="/register";</script>');
-            }
-            res.send('<script>alert("Usuário registrado com sucesso!"); window.location="/";</script>');
+  try {
+    // Verifica se o email já existe no banco de dados
+    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+      if (err) {
+        console.error('Erro ao verificar email:', err);
+        return res.status(500).send('<script>alert("Erro interno ao verificar email!"); window.location="/register";</script>');
+      }
+      if (user) {
+        return res.status(400).send('<script>alert("Email já cadastrado!"); window.location="/register";</script>');
+      }
+
+      // Criptografa a senha
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Salva o caminho da foto (se houver)
+      const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
+
+      // Insere o usuário no banco de dados
+      db.run(
+        'INSERT INTO users (name, email, password, photo, recovery_key) VALUES (?, ?, ?, ?, ?)',
+        [name, email, hashedPassword, photoPath, recovery_key],
+        (err) => {
+          if (err) {
+            console.error('Erro ao registrar usuário:', err);
+            return res.status(500).send('<script>alert("Erro ao registrar usuário!"); window.location="/register";</script>');
           }
-        );
-      });
-    } catch (error) {
-      console.error('Erro ao criptografar senha:', error);
-      res.status(500).send('<script>alert("Erro interno ao registrar usuário!"); window.location="/register";</script>');
-    }
-  });
-
+          res.send('<script>alert("Usuário registrado com sucesso!"); window.location="/";</script>');
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Erro ao criptografar senha:', error);
+    res.status(500).send('<script>alert("Erro interno ao registrar usuário!"); window.location="/register";</script>');
+  }
+});
   // Rota para fazer logout
   router.get('/logout', (req, res) => {
     if (req.session.user) {

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar Pergunta de Segurança</title>
+  <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Verificar Pergunta de Segurança</h2>
+    <form id="security-form">
+      <div id="error-message" class="error-message"></div>
+
+      <label for="securityAnswer">Resposta à Pergunta de Segurança:</label>
+      <input type="text" id="securityAnswer" name="securityAnswer" required placeholder="Ex: Nome do seu primeiro animal de estimação">
+
+      <button type="submit">Verificar</button>
+    </form>
+    <p>Lembrou sua senha? <a href="/">Faça login aqui</a>.</p>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+
+    document.getElementById('security-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const securityAnswer = document.getElementById('securityAnswer').value;
+      const errorMessage = document.getElementById('error-message');
+
+      // Limpa mensagens anteriores
+      errorMessage.textContent = '';
+
+      try {
+        const response = await fetch('/verify-security-question', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, securityAnswer }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          window.location.href = `/reset-password?token=${data.token}`;
+        } else {
+          errorMessage.textContent = data.error || 'Erro ao verificar a resposta.';
+        }
+      } catch (error) {
+        errorMessage.textContent = 'Erro ao processar sua solicitação.';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -134,29 +134,84 @@ app.get('/forgot-password', (req, res) => {
 app.get('/reset-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'reset-password.html'));
 });
-// Rota que retorna um arquivo HTML
-app.get('/usuarios-online', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'usuarios-online.html'));
+
+// Rota GET para carregar a página de recuperação de senha
+app.post('/forgot-password', (req, res) => {
+  const { email } = req.body;
+
+  db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
+    if (err) {
+      return res.status(500).json({ error: 'Erro ao buscar usuário.' });
+    }
+
+    if (!user) {
+      return res.status(400).json({ error: 'Email não encontrado.' });
+    }
+
+    res.status(200).json({ message: 'Email encontrado. Prossiga para a próxima etapa.' });
+  });
 });
 
+// Rota GET para carregar a página de verificação da pergunta de segurança
+app.get('/verify-security-question', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'verify-security-question.html'));
+});
 
-// Rota para buscar usuários online em JSON
-app.get('/usuarios-online',(req, res) => {
-  const activeUserIds = Array.from(activeUsers); // Converte o conjunto em um array de IDs
-  if (activeUserIds.length === 0) {
-    return res.json([]); // Retorna um array vazio se não houver usuários online
+// Rota POST para verificar a resposta da pergunta de segurança
+app.post('/verify-security-question', (req, res) => {
+  const { email, securityAnswer } = req.body;
+
+  db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
+    if (err) {
+      return res.status(500).json({ error: 'Erro ao buscar usuário.' });
+    }
+
+    if (!user) {
+      return res.status(400).json({ error: 'Email não encontrado.' });
+    }
+
+    if (user.recovery_key !== securityAnswer) {
+      return res.status(400).json({ error: 'Resposta incorreta.' });
+    }
+
+    const token = Math.random().toString(36).substring(2, 15); // Simula um token
+    res.status(200).json({ token });
+  });
+});
+
+// Rota GET para carregar a página de redefinição de senha
+app.get('/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'reset-password.html'));
+});
+// Rota POST para redefinir a senha
+app.post('/reset-password', (req, res) => {
+  const { token, newPassword } = req.body;
+
+  // Validação dos dados recebidos
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token e nova senha são obrigatórios.' });
   }
 
-  db.all(`
-    SELECT id, name, photo 
-    FROM users 
-    WHERE id IN (${activeUserIds.map(() => '?').join(',')})
-  `, activeUserIds, (err, users) => {
+  // Simulação de validação do token (você pode armazenar tokens no banco de dados)
+  db.get('SELECT * FROM users WHERE reset_token = ?', [token], (err, user) => {
     if (err) {
-      console.error('Erro ao buscar usuários online:', err);
-      return res.status(500).json({ error: 'Erro ao buscar usuários online' });
+      console.error('Erro ao buscar usuário pelo token:', err);
+      return res.status(500).json({ error: 'Erro ao processar sua solicitação.' });
     }
-    res.json(users); // Retorna os dados dos usuários online em JSON
+
+    if (!user) {
+      return res.status(400).json({ error: 'Token inválido ou expirado.' });
+    }
+
+    // Atualiza a senha do usuário no banco de dados
+    db.run('UPDATE users SET password = ?, reset_token = NULL WHERE id = ?', [newPassword, user.id], (err) => {
+      if (err) {
+        console.error('Erro ao atualizar senha:', err);
+        return res.status(500).json({ error: 'Erro ao redefinir senha.' });
+      }
+
+      res.status(200).json({ message: 'Senha redefinida com sucesso!' });
+    });
   });
 });
 //cria post

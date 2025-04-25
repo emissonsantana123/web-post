@@ -1,0 +1,101 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Estilo global para o corpo da página */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+/* Estilo do container principal */
+.container {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+/* Estilo do título */
+h2 {
+  color: #333333;
+  margin-bottom: 1.5rem;
+}
+
+/* Estilo dos labels */
+label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: bold;
+  color: #555555;
+}
+
+/* Estilo dos inputs */
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+/* Efeito de foco nos inputs */
+input[type="email"]:focus,
+input[type="password"]:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Estilo do botão */
+button {
+  display: inline-block;
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 1.5rem;
+  background-color: #007bff;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+/* Efeito de hover no botão */
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Estilo dos links */
+p a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+/* Efeito de hover nos links */
+p a:hover {
+  color: #0056b3;
+}
+
+/* Espaçamento entre os parágrafos */
+p {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666666;
+}
